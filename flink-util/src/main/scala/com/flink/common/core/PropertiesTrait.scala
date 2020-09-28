@@ -1,6 +1,9 @@
 package com.flink.common.core
 
+import java.io.File
+
 import org.apache.flink.api.java.utils.ParameterTool
+
 import scala.collection.JavaConverters._
 trait PropertiesTrait {
   var proName = ""
@@ -13,6 +16,8 @@ trait PropertiesTrait {
    */
   def init(path: String, proName: String): Unit = {
     this.proName = proName
+    val file = new File(path)
+    if(file.exists())
     param = ParameterTool.fromPropertiesFile(path)
   }
 

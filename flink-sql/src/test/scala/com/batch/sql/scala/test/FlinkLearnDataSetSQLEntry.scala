@@ -1,23 +1,12 @@
-package com.flink.learn.sql.batch.entry
+package com.batch.sql.scala.test
 
-import com.flink.common.core.FlinkLearnPropertiesUtil
-import com.flink.common.java.core.FlinkEvnBuilder
-import com.flink.learn.sql.common.DDLSourceSQLManager
-import org.apache.flink.api.common.time.Time
+import com.flink.learn.test.common.FlinkStreamTableCommonSuit
 import org.apache.flink.api.scala.ExecutionEnvironment
 import org.apache.flink.table.api.scala.BatchTableEnvironment
 import org.apache.flink.types.Row
-import org.apache.flink.api.scala._
-import org.apache.flink.table.api.Table
 import org.apache.flink.table.api.scala._
-
-object FlinkLearnDataSetSQLEntry {
-  def main(args: Array[String]): Unit = {
-
-    testFactory
-
-  }
-
+import org.apache.flink.api.scala._
+class FlinkLearnDataSetSQLEntry extends FlinkStreamTableCommonSuit{
   def testFactory(): Unit = {
 //    val streamEnv = FlinkEvnBuilder.buildStreamingEnv(
 //      FlinkLearnPropertiesUtil.param,
@@ -39,21 +28,15 @@ object FlinkLearnDataSetSQLEntry {
 //    tableEnv.execute("eee")
   }
 
-  /**
-    *
-    * @param env
-    * @param tEnv
-    */
-  def wordCount(env: ExecutionEnvironment,
-                tEnv: BatchTableEnvironment): Unit = {
+ test("wordcounttest"){
     // val input = env.fromElements(WC("hello", 1), WC("hello", 1), WC("ciao", 1))
     val input =
-      env.fromCollection(Array(WC("hello", 1), WC("hello", 1), WC("ciao", 1)))
+      bEnv.fromCollection(Array(WC("hello", 1), WC("hello", 1), WC("ciao", 1)))
     // register the DataSet as table "WordCount"
-    tEnv.registerDataSet("WordCount", input, 'word, 'frequency)
+    batchEnv.registerDataSet("WordCount", input, 'word, 'frequency)
     // run a SQL query on the Table and retrieve the result as a new Table
     val table =
-      tEnv.sqlQuery("SELECT word, SUM(frequency) FROM WordCount GROUP BY word")
+      batchEnv.sqlQuery("SELECT word, SUM(frequency) FROM WordCount GROUP BY word")
     // table.toDataSet[WC].print()
     table.toDataSet[Row].print()
   }
