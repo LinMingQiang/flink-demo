@@ -20,7 +20,7 @@ import org.junit.Test;
 public class FlinkStreamCoreSourceSinkTest extends FlinkJavaStreamTableTestBase {
     /**
      * 自定义的sinkfactory
-     * 百度SPI
+     * SPI
      * 1： 需要再resources/META-INF.services/下创建一个接口名-(org.apache.flink.table.factories.TableFactory)的SPI文件（不是txt）
      * 2：在文件里面写上自己实现的类路径
      * 3：实现PrintlnAppendStreamFactory。
