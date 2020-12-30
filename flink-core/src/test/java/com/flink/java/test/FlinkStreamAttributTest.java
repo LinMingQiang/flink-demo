@@ -26,6 +26,7 @@ import org.junit.Test;
 public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
     /**
      * 归因， 请求 -》 曝光 -》 点击
+     * 对日志数据进行去重。
      */
     @Test
     public void testAttribute() throws Exception {
@@ -48,7 +49,6 @@ public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
                             public void open(Configuration parameters) throws Exception {
                                 has = getRuntimeContext().getState(new ValueStateDescriptor<Boolean>("has", Types.BOOLEAN, false));
                             }
-
                             @Override
                             public void processElement(KafkaManager.KafkaTopicOffsetTimeMsg v1, Context context, Collector<ReportLogPojo> collector) throws Exception {
                                 if (!has.value()) {

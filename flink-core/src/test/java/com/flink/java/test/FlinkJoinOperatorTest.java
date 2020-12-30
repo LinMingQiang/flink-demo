@@ -56,8 +56,9 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
      */
     @Test
     public void intervalJoinTest() throws Exception {
-        // {"ts":130,"msg":"1"} join {"ts":89,"msg":"1"} {"ts":91,"msg":"1"}  {"ts":110,"msg":"1"} {"ts":111,"msg":"1"}
-        // {"ts":200,"msg":"1"} join {"ts":152,"msg":"1"} {"ts":120,"msg":"1"} {"ts":142,"msg":"1"}
+        // d1: {"ts":15,"msg":"1"}
+        // d2 {"ts":25,"msg":"1"} {"ts":5,"msg":"1"} // 正常输出
+        // d2 : {"ts":26,"msg":"1"} {"ts":4,"msg":"1"}  // join 不到
         initJsonSource();
         d1.intervalJoin(d2)
                 .between(Time.seconds(-10), Time.seconds(10))
@@ -75,6 +76,7 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
 
     /**
      * cd1 和 cd2 可以在之前先keyby。也可以conenct之后再keyby
+     *
      * @throws Exception
      */
     @Test
@@ -88,6 +90,7 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
                     public void processElement1(KafkaTopicOffsetTimeMsg value, Context ctx, Collector<String> out) throws Exception {
                         out.collect(value.toString());
                     }
+
                     @Override
                     public void processElement2(KafkaTopicOffsetTimeMsg value, Context ctx, Collector<String> out) throws Exception {
                         out.collect(value.toString());
@@ -106,7 +109,7 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
      * 3:  lookup 就是普通的 TableFunction。只是分同步还是异步
      */
     @Test
-    public void lookupFunTest(){
+    public void lookupFunTest() {
         // {"ts":200,"msg":"268"}
 
     }

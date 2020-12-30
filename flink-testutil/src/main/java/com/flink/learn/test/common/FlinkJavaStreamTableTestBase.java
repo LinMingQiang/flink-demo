@@ -35,19 +35,7 @@ public class FlinkJavaStreamTableTestBase extends FlinkSourceBuilder implements 
 
     @Before
     public void before() throws Exception {
-        FlinkLearnPropertiesUtil.init(EnvironmentalKey.LOCAL_PROPERTIES_PATH(),
-                "FlinkLearnStreamDDLSQLEntry");
-        bEnv = ExecutionEnvironment.getExecutionEnvironment();
-        streamEnv = FlinkEvnBuilder.buildStreamingEnv(FlinkLearnPropertiesUtil.param(),
-                FlinkLearnPropertiesUtil.CHECKPOINT_PATH(),
-                FlinkLearnPropertiesUtil.CHECKPOINT_INTERVAL());
-        tableEnv = FlinkEvnBuilder.buildStreamTableEnv(streamEnv,
-                Time.minutes(1),
-                Time.minutes(6));
-        tableE = FlinkEvnBuilder.buildTableEnv();
-        baseKafkaSource= getKafkaDataStream("test", "localhost:9092", "latest");
-        baseEventtimeKafkaSource = getKafkaDataStreamWithEventTime("test", "localhost:9092", "latest");
-        baseEventtimeJsonSource = getKafkaDataStreamWithJsonEventTime("test", "localhost:9092", "latest");
+        init();
 
     }
 

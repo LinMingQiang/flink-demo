@@ -18,10 +18,15 @@ public abstract class FlinkStreamEnvAndSource {
     public static SingleOutputStreamOperator<KafkaManager.KafkaTopicOffsetTimeMsg> cd1 = null;
     public static SingleOutputStreamOperator<KafkaManager.KafkaTopicOffsetTimeMsg> cd3 = null;
 
+    public static SingleOutputStreamOperator<KafkaManager.KafkaTopicOffsetTimeUidMsg> uid1T = null;
+    public static SingleOutputStreamOperator<KafkaManager.KafkaTopicOffsetTimeUidMsg> uid2T = null;
+    public static SingleOutputStreamOperator<KafkaManager.KafkaTopicOffsetTimeUidMsg> uid3T = null;
+
 
     public static DataStreamSource<KafkaManager.KafkaTopicOffsetMsg> baseKafkaSource = null;
     public static DataStreamSource<KafkaManager.KafkaTopicOffsetTimeMsg> baseEventtimeKafkaSource = null;
     public static DataStreamSource<KafkaManager.KafkaTopicOffsetTimeMsg> baseEventtimeJsonSource = null;
+    public static DataStreamSource<KafkaManager.KafkaTopicOffsetTimeUidMsg> baseEventtimeJsonUidMsgSource = null;
 
 
     public static TableEnvironment tableE = null;
