@@ -28,6 +28,9 @@ public abstract class FlinkStreamEnvAndSource {
     public static DataStreamSource<KafkaManager.KafkaTopicOffsetTimeMsg> baseEventtimeJsonSource = null;
     public static DataStreamSource<KafkaManager.KafkaTopicOffsetTimeUidMsg> baseEventtimeJsonUidMsgSource = null;
 
+    public static DataStreamSource<KafkaManager.KafkaTopicReqImpClickMsg> baseReqImpClickSource = null;
+
+
 
     public static TableEnvironment tableE = null;
     public static ExecutionEnvironment bEnv = null;

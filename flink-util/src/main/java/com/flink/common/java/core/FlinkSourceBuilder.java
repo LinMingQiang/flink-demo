@@ -2,10 +2,7 @@ package com.flink.common.java.core;
 
 import com.flink.common.core.EnvironmentalKey;
 import com.flink.common.core.FlinkLearnPropertiesUtil;
-import com.flink.common.deserialize.TopicOffsetJsonEventtimeDeserialize;
-import com.flink.common.deserialize.TopicOffsetJsonKeyMsgDeserialize;
-import com.flink.common.deserialize.TopicOffsetMsgDeserialize;
-import com.flink.common.deserialize.TopicOffsetTimeStampMsgDeserialize;
+import com.flink.common.deserialize.*;
 import com.flink.common.kafka.KafkaManager;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -16,6 +13,7 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.timestamps.BoundedOutOfOrdernessTimestampExtractor;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.KafkaDeserializationSchema;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
@@ -54,6 +52,9 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
         baseEventtimeKafkaSource = getKafkaDataStreamWithEventTime("test", "localhost:9092", "latest");
         baseEventtimeJsonSource = getKafkaDataStreamWithJsonEventTime("test", "localhost:9092", "latest");
         baseEventtimeJsonUidMsgSource = getKafkaDataStreamWithJsonUidMsg("test", "localhost:9092", "latest");
+        baseReqImpClickSource = getKafkaDataStreamReqImpclickMsg("test", "localhost:9092", "latest" ,
+                new TopicOffsetJsonReqImpClickDeserialize()
+                );
     }
 
     public static FlinkKafkaConsumer<KafkaManager.KafkaTopicOffsetTimeMsg> getKafkaSourceWithTS(
@@ -178,6 +179,19 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
                                                                        String reset) {
         return streamEnv.addSource(getKafkaSourceWithJsonUidMsg(topic, broker, reset));
     }
+
+    /**
+     * @param topic
+     * @param broker
+     * @param reset
+     * @return
+     */
+    public static DataStreamSource getKafkaDataStreamReqImpclickMsg(String topic,
+                                                                    String broker,
+                                                                    String reset,
+                                                                    KafkaDeserializationSchema kz) {
+        return streamEnv.addSource(getKafkaSourceWithJsonUidMsg(topic, broker, reset, kz));
+    }
     /**
      * @param topic
      * @param broker
@@ -223,7 +237,30 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
         }
         return kafkasource;
     }
-
+    /**
+     * @param topic
+     * @param broker
+     * @param reset
+     * @return
+     */
+    public static FlinkKafkaConsumer getKafkaSourceWithJsonUidMsg(
+            String topic,
+            String broker,
+            String reset,
+            KafkaDeserializationSchema kz
+    ) {
+        FlinkKafkaConsumer kafkasource = KafkaManager.getKafkaSource(
+                topic,
+                broker,
+                kz);
+        kafkasource.setCommitOffsetsOnCheckpoints(true);
+        if (reset == "earliest") {
+            kafkasource.setStartFromEarliest(); //不加这个默认是从上次消费
+        } else if (reset == "latest") {
+            kafkasource.setStartFromLatest();
+        }
+        return kafkasource;
+    }
     /**
      * json的数据源
      */
@@ -331,28 +368,41 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
     /**
      * json的数据源
      */
-    public static void initJsonSource() {
-        d1 = baseEventtimeJsonSource
-                .assignTimestampsAndWatermarks(
-                        new BoundedOutOfOrdernessTimestampExtractor
-                                <KafkaManager.KafkaTopicOffsetTimeMsg>(org.apache.flink.streaming.api.windowing.time.Time.seconds(10)) {
-                            @Override
-                            public long extractTimestamp(KafkaManager.KafkaTopicOffsetTimeMsg element) {
-                                return element.ts();
+    public static void initJsonSource(Boolean needWtm) {
+        if(needWtm){
+            d1 = baseEventtimeJsonSource
+                    .assignTimestampsAndWatermarks(
+                            new BoundedOutOfOrdernessTimestampExtractor
+                                    <KafkaManager.KafkaTopicOffsetTimeMsg>(org.apache.flink.streaming.api.windowing.time.Time.seconds(10)) {
+                                @Override
+                                public long extractTimestamp(KafkaManager.KafkaTopicOffsetTimeMsg element) {
+                                    return element.ts();
+                                }
                             }
-                        }
-                ).keyBy(KafkaManager.KafkaTopicOffsetTimeMsg::msg);
-        d2 = getKafkaDataStreamWithJsonEventTime("test2", "localhost:9092", "latest")
-                .assignTimestampsAndWatermarks(
-                        new BoundedOutOfOrdernessTimestampExtractor
-                                <KafkaManager.KafkaTopicOffsetTimeMsg>(org.apache.flink.streaming.api.windowing.time.Time.seconds(10)) {
-                            @Override
-                            public long extractTimestamp(KafkaManager.KafkaTopicOffsetTimeMsg element) {
-                                return element.ts();
+                    )
+                    .keyBy(KafkaManager.KafkaTopicOffsetTimeMsg::msg);
+        } else {
+            d1 = baseEventtimeJsonSource
+                    .keyBy(KafkaManager.KafkaTopicOffsetTimeMsg::msg);
+        }
+        if(needWtm){
+            d2 = getKafkaDataStreamWithJsonEventTime("test2", "localhost:9092", "latest")
+                    .assignTimestampsAndWatermarks(
+                            new BoundedOutOfOrdernessTimestampExtractor
+                                    <KafkaManager.KafkaTopicOffsetTimeMsg>(org.apache.flink.streaming.api.windowing.time.Time.seconds(10)) {
+                                @Override
+                                public long extractTimestamp(KafkaManager.KafkaTopicOffsetTimeMsg element) {
+                                    return element.ts();
+                                }
                             }
-                        }
-                )
-                .keyBy((KeySelector<KafkaManager.KafkaTopicOffsetTimeMsg, String>) value -> value.msg());
+                    )
+                    .keyBy((KeySelector<KafkaManager.KafkaTopicOffsetTimeMsg, String>) value -> value.msg());
+        } else {
+            d2 = getKafkaDataStreamWithJsonEventTime("test2", "localhost:9092", "latest")
+                    .keyBy((KeySelector<KafkaManager.KafkaTopicOffsetTimeMsg, String>) value -> value.msg());
+        }
+
+
     }
 
     public static void printlnStringTable(Table b) {

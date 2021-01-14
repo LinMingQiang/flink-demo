@@ -32,6 +32,8 @@ object KafkaManager {
 
   case class KafkaTopicOffsetTimeUidMsg(topic: String, ts: Long, uid: String, msg: String)
 
+  case class KafkaTopicReqImpClickMsg(log: String, ts: Long, reqid: String, msg: String)
+
   /**
    *
    * @param topic
