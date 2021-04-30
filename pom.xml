@@ -33,9 +33,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <java.version>1.8</java.version>
         <encoding>UTF-8</encoding>
-        <flink.version>1.13.0</flink.version>
-        <scala.version>2.12.8</scala.version>
-        <scala.binary.version>2.12</scala.binary.version>
+        <flink.version>1.14-SNAPSHOT</flink.version>
+        <scala.version>2.11.5</scala.version>
+        <scala.binary.version>2.11</scala.binary.version>
         <fastjson.version>1.2.39</fastjson.version>
         <hbase.version>1.3.2</hbase.version>
     </properties>
