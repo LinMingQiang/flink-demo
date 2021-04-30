@@ -1,9 +1,6 @@
 package com.func.processfunc;
 
-import com.flink.common.kafka.KafkaManager;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
-
-import org.apache.commons.lang3.time.DateFormatUtils;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.ValueState;
@@ -18,10 +15,10 @@ import org.apache.flink.util.OutputTag;
 
 import java.io.IOException;
 
-public class StreamConnectCoProcessFunc extends KeyedCoProcessFunction<Object, KafkaMessge, KafkaMessge, Tuple3<Boolean, KafkaMessge, KafkaMessge>> {
+public class StreamConnectCoProcessFunc extends KeyedCoProcessFunction<Object, KafkaMessgePoJo, KafkaMessgePoJo, Tuple3<Boolean, KafkaMessgePoJo, KafkaMessgePoJo>> {
     // 一对多的场景，v2作为维表
-    ListState<KafkaMessge> source = null;
-    ValueState<KafkaMessge> v2 = null;
+    ListState<KafkaMessgePoJo> source = null;
+    ValueState<KafkaMessgePoJo> v2 = null;
     OutputTag<String> errV1 = null;
 
     public StreamConnectCoProcessFunc(OutputTag<String> errV1) {
@@ -38,10 +35,10 @@ public class StreamConnectCoProcessFunc extends KeyedCoProcessFunction<Object, K
         super.open(parameters);
         source = getRuntimeContext().getListState(
                 new ListStateDescriptor("test1",
-                        TypeInformation.of(KafkaMessge.class)));
+                        TypeInformation.of(KafkaMessgePoJo.class)));
         v2 = getRuntimeContext().getState(
                 new ValueStateDescriptor("test2",
-                        TypeInformation.of(KafkaMessge.class)));
+                        TypeInformation.of(KafkaMessgePoJo.class)));
     }
 
     /**
@@ -53,7 +50,7 @@ public class StreamConnectCoProcessFunc extends KeyedCoProcessFunction<Object, K
      * @throws Exception
      */
     @Override
-    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple3<Boolean, KafkaMessge, KafkaMessge>> out) throws Exception {
+    public void onTimer(long timestamp, OnTimerContext ctx, Collector<Tuple3<Boolean, KafkaMessgePoJo, KafkaMessgePoJo>> out) throws Exception {
 //        System.out.println("#### Ontime ####");
         if (v2.value() != null) {
             source.get().forEach(x -> {
@@ -84,7 +81,7 @@ public class StreamConnectCoProcessFunc extends KeyedCoProcessFunction<Object, K
      * @throws Exception
      */
     @Override
-    public void processElement1(KafkaMessge value, Context ctx, Collector<Tuple3<Boolean, KafkaMessge, KafkaMessge>> out) throws Exception {
+    public void processElement1(KafkaMessgePoJo value, Context ctx, Collector<Tuple3<Boolean, KafkaMessgePoJo, KafkaMessgePoJo>> out) throws Exception {
 //        System.out.println(value+ "  source wtm : " + ctx.timerService().currentWatermark());
         if (v2.value() == null) {
             source.add(value);
@@ -113,7 +110,7 @@ public class StreamConnectCoProcessFunc extends KeyedCoProcessFunction<Object, K
      * @throws Exception
      */
     @Override
-    public void processElement2(KafkaMessge value, Context ctx, Collector<Tuple3<Boolean, KafkaMessge, KafkaMessge>> out) throws Exception {
+    public void processElement2(KafkaMessgePoJo value, Context ctx, Collector<Tuple3<Boolean, KafkaMessgePoJo, KafkaMessgePoJo>> out) throws Exception {
 //        System.out.println(value +  "  v2 wtm : " + ctx.timerService().currentWatermark());
         v2.update(value);
         source.get().forEach(x -> {

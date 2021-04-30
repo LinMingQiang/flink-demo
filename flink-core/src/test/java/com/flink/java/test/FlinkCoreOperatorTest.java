@@ -1,8 +1,7 @@
 package com.flink.java.test;
 
+import com.pojo.KafkaMessgePoJo;
 import com.pojo.WordCountPoJo;
-import com.flink.common.kafka.KafkaManager;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
 import com.func.processfunc.StreamConnectCoProcessFunc;
 import com.func.richfunc.AsyncIODatabaseRequest;
 import com.flink.learn.test.common.FlinkJavaStreamTableTestBase;
@@ -34,8 +33,8 @@ public class FlinkCoreOperatorTest extends FlinkJavaStreamTableTestBase {
     public void testWordCount() throws Exception {
         // {"msg":"hello"}
         kafkaDataSource
-                .flatMap((FlatMapFunction<KafkaMessge, String>) (value, out) -> {
-                    for (String s : value.msg().split(",", -1)) {
+                .flatMap((FlatMapFunction<KafkaMessgePoJo, String>) (value, out) -> {
+                    for (String s : value.msg.split(",", -1)) {
                         out.collect(s);
                     }
                 })
@@ -59,13 +58,13 @@ public class FlinkCoreOperatorTest extends FlinkJavaStreamTableTestBase {
         OutputTag<WordCountPoJo> rejectedWordsTag = new OutputTag<WordCountPoJo>("rejected") {
         };
         SingleOutputStreamOperator<WordCountPoJo> sourceStream = kafkaDataSource
-                .process(new KeyedProcessFunction<String, KafkaMessge, WordCountPoJo>() {
+                .process(new KeyedProcessFunction<String, KafkaMessgePoJo, WordCountPoJo>() {
                     @Override
-                    public void processElement(KafkaMessge value, Context ctx, Collector<WordCountPoJo> out) {
-                        if (!value.msg().matches("^[0-9]*$")) {
+                    public void processElement(KafkaMessgePoJo value, Context ctx, Collector<WordCountPoJo> out) {
+                        if (!value.msg.matches("^[0-9]*$")) {
                             ctx.output(rejectedWordsTag, new WordCountPoJo("rejested", 1));
                         } else {
-                            out.collect(new WordCountPoJo(value.msg(), 1));
+                            out.collect(new WordCountPoJo(value.msg, 1));
                         }
                     }
                 })
@@ -104,7 +103,7 @@ public class FlinkCoreOperatorTest extends FlinkJavaStreamTableTestBase {
         SingleOutputStreamOperator resultStream =
                 kafkaDataSource
                         .connect(getKafkaKeyStream("test2", "localhost:9092", "latest"))
-                        .keyBy(KafkaMessge::msg, KafkaMessge::msg)
+                        .keyBy(KafkaMessgePoJo::getMsg, KafkaMessgePoJo::getMsg)
                         .process(new StreamConnectCoProcessFunc(rejectedWordsTag))
                         .setParallelism(4);
 
@@ -116,7 +115,12 @@ public class FlinkCoreOperatorTest extends FlinkJavaStreamTableTestBase {
     }
 
     /**
-     * 异步io测试
+     * 异步io测试：这玩意挺废的？必须客户端连接是异步的。本身 task不是异步方式调用asyncInvoke
+     * 除非 asyncInvoke(...) 方法快速返回并且依赖于（客户端的）回调, 否则无法实现正确的异步 I/O。
+     * 例如，
+     * 以下情况导致阻塞的 asyncInvoke(...) 函数，从而使异步行为无效：
+     * 使用同步数据库客户端，它的查询方法调用在返回结果前一直被阻塞。
+     * 在 asyncInvoke(...) 方法内阻塞等待异步客户端返回的 future 类型对象
      */
     @Test
     public void testAsyncIo() throws Exception {

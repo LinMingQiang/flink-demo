@@ -1,8 +1,8 @@
 package com.flink.java.test;
 
 import com.flink.common.kafka.KafkaManager;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
 import com.flink.learn.test.common.FlinkJavaStreamTableTestBase;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -24,7 +24,7 @@ public class FlinkJiraBugTest extends FlinkJavaStreamTableTestBase {
     public void testWindow() throws Exception {
         // {"ts":10,"msg":"c"} {"ts":11,"msg":"c"} {"ts":150,"msg":"c"}
         kafkaDataSource
-                .map((MapFunction<KafkaMessge, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg(), 1L))
+                .map((MapFunction<KafkaMessgePoJo, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg, 1L))
                 .returns(Types.TUPLE(Types.STRING, Types.LONG))
                 .keyBy((KeySelector<Tuple2<String, Long>, String>) o -> o.f0)
                 .window(TumblingEventTimeWindows.of(Time.seconds(100)))

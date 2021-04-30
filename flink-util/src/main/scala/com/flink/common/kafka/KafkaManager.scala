@@ -20,12 +20,12 @@ object KafkaManager {
     // pro.put("auto.commit.interval.ms", "60000")
     pro
   }
-  case class KafkaMessge(topic: String,
-                         offset: Long,
-                         ts: Long,
-                         msg: String,
-                         rowtime: String,
-                         uid: String)
+//  case class KafkaMessge(topic: String,
+//                         offset: Long,
+//                         ts: Long,
+//                         msg: String,
+//                         rowtime: String,
+//                         uid: String)
 
   /**
    *

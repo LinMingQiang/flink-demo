@@ -5,7 +5,7 @@ import com.flink.common.core.FlinkLearnPropertiesUtil;
 import com.flink.common.deserialize.KafkaMessageDeserialize;
 import com.core.FlinkEvnBuilder;
 import com.manager.KafkaSourceManager;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -51,10 +51,10 @@ public class FlinkCoreWindowEntry {
                 "localhost:9092",
                 "latest", new KafkaMessageDeserialize())
                 .assignTimestampsAndWatermarks(
-                        WatermarkStrategy.<KafkaMessge>forBoundedOutOfOrderness(Duration.ofSeconds(10))
-                                .withTimestampAssigner(((element, recordTimestamp) -> element.ts())))
-                .returns(KafkaMessge.class)
-                .map((MapFunction<KafkaMessge, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg(), 1L))
+                        WatermarkStrategy.<KafkaMessgePoJo>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                                .withTimestampAssigner(((element, recordTimestamp) -> element.ts)))
+                .returns(KafkaMessgePoJo.class)
+                .map((MapFunction<KafkaMessgePoJo, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg, 1L))
                 .returns(Types.TUPLE(Types.STRING, Types.LONG))
                 .setParallelism(2)
                 .keyBy((KeySelector<Tuple2<String, Long>, String>) o -> o.f0 )

@@ -8,6 +8,7 @@ import com.flink.common.deserialize.KafkaMessageDeserialize;
 import com.flink.common.kafka.KafkaManager;
 import com.func.processfunc.StreamConnectCoProcessFunc;
 import com.manager.KafkaSourceManager;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -40,13 +41,13 @@ public class StreamJoinStreamEntry {
                 "WordCountEntry",
                 Duration.ofHours(2));
         streamEnv = FlinkSourceBuilder.streamEnv;
-        SingleOutputStreamOperator<KafkaManager.KafkaMessge> source =
+        SingleOutputStreamOperator<KafkaMessgePoJo> source =
                 FlinkSourceBuilder.getKafkaDataStreamSource("test", "localhost:9092", "latest");
 
-        SingleOutputStreamOperator<KafkaManager.KafkaMessge> v2 =
+        SingleOutputStreamOperator<KafkaMessgePoJo> v2 =
                 FlinkSourceBuilder.getKafkaDataStreamSource("test2", "localhost:9092", "latest");
         source.connect(v2)
-                .keyBy(KafkaManager.KafkaMessge::msg, KafkaManager.KafkaMessge::msg) // join的条件,其实就是分组下
+                .keyBy(KafkaMessgePoJo::getMsg, KafkaMessgePoJo::getMsg) // join的条件,其实就是分组下
                 .process(new StreamConnectCoProcessFunc(null))
         .print();
 

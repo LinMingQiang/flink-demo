@@ -3,6 +3,7 @@ package com.flink.learn.entry;
 import com.flink.common.deserialize.KafkaMessageDeserialize;
 import com.flink.common.kafka.KafkaManager;
 import com.flink.learn.bean.WordCountPoJo;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
@@ -93,11 +94,11 @@ public class SampleTest {
         return env.addSource(getKafkaSource(topic, broker, reset));
     }
 
-    public static FlinkKafkaConsumer<KafkaManager.KafkaMessge> getKafkaSource(
+    public static FlinkKafkaConsumer<KafkaMessgePoJo> getKafkaSource(
             String topic,
             String broker,
             String reset) {
-        FlinkKafkaConsumer<KafkaManager.KafkaMessge> kafkasource = KafkaManager.getKafkaSource(
+        FlinkKafkaConsumer<KafkaMessgePoJo> kafkasource = KafkaManager.getKafkaSource(
                 topic,
                 broker,
                 new KafkaMessageDeserialize());

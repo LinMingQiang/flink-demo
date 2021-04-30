@@ -5,6 +5,7 @@ import com.flink.common.kafka.KafkaManager.*;
 import com.func.richfunc.AsyncIODatabaseRequest;
 import com.flink.learn.test.common.FlinkJavaStreamTableTestBase;
 import com.func.richfunc.AsyncIORichFunction;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.FlatJoinFunction;
 import org.apache.flink.api.common.state.BroadcastState;
@@ -31,12 +32,12 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
     public void windowJoinTest() throws Exception {
         getKafkaKeyStream("test", "localhost:9092", "latest")
                 .join(getKafkaKeyStream("test2", "localhost:9092", "latest"))
-                .where((KeySelector<KafkaMessge, String>) value -> value.msg())
-                .equalTo((KeySelector<KafkaMessge, String>) value -> value.msg())
+                .where((KeySelector<KafkaMessgePoJo, String>) value -> value.msg)
+                .equalTo((KeySelector<KafkaMessgePoJo, String>) value -> value.msg)
                 .window(TumblingProcessingTimeWindows.of(Time.seconds(10)))
-                .apply(new FlatJoinFunction<KafkaMessge, KafkaMessge, String>() {
+                .apply(new FlatJoinFunction<KafkaMessgePoJo, KafkaMessgePoJo, String>() {
                            @Override
-                           public void join(KafkaMessge first, KafkaMessge second, Collector<String> out) throws Exception {
+                           public void join(KafkaMessgePoJo first, KafkaMessgePoJo second, Collector<String> out) throws Exception {
                                out.collect(first.toString() + " <-> " + second.toString());
                            }
                        }
@@ -61,9 +62,9 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
         getKafkaKeyStream("test", "localhost:9092", "latest")
                 .intervalJoin(getKafkaKeyStream("test2", "localhost:9092", "latest"))
                 .between(Time.seconds(-10), Time.seconds(10))
-                .process(new ProcessJoinFunction<KafkaMessge, KafkaMessge, String>() {
+                .process(new ProcessJoinFunction<KafkaMessgePoJo, KafkaMessgePoJo, String>() {
                     @Override
-                    public void processElement(KafkaMessge left, KafkaMessge right, Context ctx, Collector<String> out) throws Exception {
+                    public void processElement(KafkaMessgePoJo left, KafkaMessgePoJo right, Context ctx, Collector<String> out) throws Exception {
                         out.collect(left + " <-> " + right);
                     }
                 })
@@ -84,14 +85,14 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
         getKafkaKeyStream("test", "localhost:9092", "latest")
                 .connect(getKafkaKeyStream("test2", "localhost:9092", "latest"))
                 .keyBy("msg", "msg")
-                .process(new CoProcessFunction<KafkaMessge, KafkaMessge, String>() {
+                .process(new CoProcessFunction<KafkaMessgePoJo, KafkaMessgePoJo, String>() {
                     @Override
-                    public void processElement1(KafkaMessge value, Context ctx, Collector<String> out) throws Exception {
+                    public void processElement1(KafkaMessgePoJo value, Context ctx, Collector<String> out) throws Exception {
                         out.collect(value.toString());
                     }
 
                     @Override
-                    public void processElement2(KafkaMessge value, Context ctx, Collector<String> out) throws Exception {
+                    public void processElement2(KafkaMessgePoJo value, Context ctx, Collector<String> out) throws Exception {
                         out.collect(value.toString());
                     }
                 })
@@ -114,7 +115,7 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
     public void testAsyncIo() throws Exception {
         AsyncDataStream.unorderedWait(
                 kafkaDataSource,
-                new AsyncIORichFunction(),
+                new AsyncIODatabaseRequest(),
                 4,
                 TimeUnit.SECONDS,
                 3) // 100异步最大个数，超过100个请求将构成反压。
@@ -133,35 +134,35 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
         // {"ts":100,"msg":"1"} join {"ts":100,"msg":"3"} {"ts":111,"msg":"3"}  {"ts":110,"msg":"1"} {"ts":111,"msg":"1"}
         // {"ts":111,"msg":"1"} join {"ts":152,"msg":"1"}
         // {"ts":130,"msg":"4"} join {"ts":130,"msg":"3"}
-        MapStateDescriptor<String, KafkaMessge> bcStateDescriptor =
-                new MapStateDescriptor("d2", Types.STRING, TypeInformation.of(KafkaMessge.class));
+        MapStateDescriptor<String, KafkaMessgePoJo> bcStateDescriptor =
+                new MapStateDescriptor("d2", Types.STRING, TypeInformation.of(KafkaMessgePoJo.class));
         // d2必须也要wtm，因为双流的wtm是两个流决定的
-        BroadcastStream<KafkaMessge> bcedPatterns =
+        BroadcastStream<KafkaMessgePoJo> bcedPatterns =
                 getKafkaDataStreamSource("test", "localhost:9092", "latest")
                 .broadcast(bcStateDescriptor);
 
         kafkaDataSource
                 .connect(bcedPatterns)
-                .process(new KeyedBroadcastProcessFunction<String, KafkaMessge, KafkaMessge, String>() {
-                    MapStateDescriptor<String, KafkaMessge> patternDesc;
-                    ValueState<KafkaMessge> tmpMsg;
+                .process(new KeyedBroadcastProcessFunction<String, KafkaMessgePoJo, KafkaMessgePoJo, String>() {
+                    MapStateDescriptor<String, KafkaMessgePoJo> patternDesc;
+                    ValueState<KafkaMessgePoJo> tmpMsg;
 
                     @Override
-                    public void processElement(KafkaMessge value, ReadOnlyContext ctx, Collector<String> out) throws Exception {
-                        KafkaMessge d2Msg = ctx.getBroadcastState(this.patternDesc).get(value.msg());
+                    public void processElement(KafkaMessgePoJo value, ReadOnlyContext ctx, Collector<String> out) throws Exception {
+                        KafkaMessgePoJo d2Msg = ctx.getBroadcastState(this.patternDesc).get(value.msg);
                         if (d2Msg != null) {
                             out.collect(value + " <-> " + d2Msg);
                         } else {
                             tmpMsg.update(value);
                             // 以时间戳为Key的触发器，时间戳重复覆盖跟key无关
-                            ctx.timerService().registerEventTimeTimer(value.ts() + 1000L);
+                            ctx.timerService().registerEventTimeTimer(value.ts + 1000L);
                         }
                     }
 
                     @Override
                     public void onTimer(long timestamp, OnTimerContext ctx, Collector<String> out) throws Exception {
                         System.out.println("ontime >>>>>" + tmpMsg.value());
-                        KafkaMessge d2Msg = ctx.getBroadcastState(this.patternDesc).get(tmpMsg.value().msg());
+                        KafkaMessgePoJo d2Msg = ctx.getBroadcastState(this.patternDesc).get(tmpMsg.value().msg);
                         if (d2Msg != null) {
                             out.collect(tmpMsg.value() + " <-> " + d2Msg);
                         } else
@@ -169,20 +170,20 @@ public class FlinkJoinOperatorTest extends FlinkJavaStreamTableTestBase {
                     }
 
                     @Override
-                    public void processBroadcastElement(KafkaMessge value, Context ctx, Collector<String> out) throws Exception {
+                    public void processBroadcastElement(KafkaMessgePoJo value, Context ctx, Collector<String> out) throws Exception {
                         // store the new pattern by updating the broadcast state
-                        BroadcastState<String, KafkaMessge> bcState = ctx.getBroadcastState(patternDesc);
+                        BroadcastState<String, KafkaMessgePoJo> bcState = ctx.getBroadcastState(patternDesc);
                         // storing in MapState with null as VOID default value
-                        bcState.put(value.msg(), value);
+                        bcState.put(value.msg, value);
 
                     }
 
                     @Override
                     public void open(Configuration parameters) throws Exception {
                         tmpMsg = getRuntimeContext().getState(
-                                new ValueStateDescriptor<>("tmpMsg", TypeInformation.of(KafkaMessge.class)));
+                                new ValueStateDescriptor<>("tmpMsg", TypeInformation.of(KafkaMessgePoJo.class)));
                         patternDesc =
-                                new MapStateDescriptor("d2", Types.STRING, TypeInformation.of(KafkaMessge.class));
+                                new MapStateDescriptor("d2", Types.STRING, TypeInformation.of(KafkaMessgePoJo.class));
                         super.open(parameters);
                     }
 

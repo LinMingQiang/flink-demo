@@ -1,7 +1,7 @@
 package com.flink.common.deserialize
 
 import com.alibaba.fastjson.JSON
-import com.flink.common.kafka.KafkaManager.KafkaMessge
+import com.pojo.KafkaMessgePoJo
 import org.apache.commons.lang3.time.DateFormatUtils
 import org.apache.flink.api.scala.typeutils.CaseClassTypeInfo
 import org.apache.flink.api.scala.{createTypeInformation => _}
@@ -12,12 +12,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 
 import java.text.SimpleDateFormat
 
-class KafkaMessageDeserialize extends KafkaDeserializationSchema[KafkaMessge] {
+class KafkaMessageDeserialize extends KafkaDeserializationSchema[KafkaMessgePoJo] {
   val timeFormatPattern = "yyyy-MM-dd hh:mm:ss"
   val smp = new SimpleDateFormat(timeFormatPattern)
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]],
-                           out: Collector[KafkaMessge]): Unit = {
+                           out: Collector[KafkaMessgePoJo]): Unit = {
     if (new String(record.value()).startsWith("{")) {
       val json = JSON.parseObject(new String(record.value()))
       val rowtime = {
@@ -25,7 +25,7 @@ class KafkaMessageDeserialize extends KafkaDeserializationSchema[KafkaMessge] {
         else "1970-01-01 00:00:00"
       }
       out.collect(
-        KafkaMessge(
+        new KafkaMessgePoJo(
           new String(record.topic()),
           record.offset(),
           smp.parse(rowtime).getTime,
@@ -37,7 +37,7 @@ class KafkaMessageDeserialize extends KafkaDeserializationSchema[KafkaMessge] {
       if (new String(record.value()).nonEmpty) {
         val tim = System.currentTimeMillis()
         out.collect(
-          KafkaMessge(
+          new KafkaMessgePoJo(
             new String(record.topic()),
             record.offset(),
             tim,
@@ -48,18 +48,16 @@ class KafkaMessageDeserialize extends KafkaDeserializationSchema[KafkaMessge] {
       }
     }
   }
-  override def isEndOfStream(nextElement: (KafkaMessge)) = {
+  override def isEndOfStream(nextElement: (KafkaMessgePoJo)) = {
     false
   }
 
   override def getProducedType() = {
-    createTypeInformation[KafkaMessge]
-      .asInstanceOf[CaseClassTypeInfo[KafkaMessge]]
-
+    createTypeInformation[KafkaMessgePoJo]
   }
 
   override def deserialize(
-      consumerRecord: ConsumerRecord[Array[Byte], Array[Byte]]): KafkaMessge =
+      consumerRecord: ConsumerRecord[Array[Byte], Array[Byte]]): KafkaMessgePoJo =
     ???
 }
 
@@ -84,5 +82,5 @@ class KafkaMessageDeserialize extends KafkaDeserializationSchema[KafkaMessge] {
 //  override def getProducedType: TypeInformation[KafkaKeyValue] =
 //    createTypeInformation[KafkaKeyValue].asInstanceOf[CaseClassTypeInfo[KafkaKeyValue]]
 //    TypeInformation.of(
-//      KafkaMessge.getClass.asInstanceOf[Class[KafkaMessge]])
+//      KafkaMessgePoJo.getClass.asInstanceOf[Class[KafkaMessgePoJo]])
 //}

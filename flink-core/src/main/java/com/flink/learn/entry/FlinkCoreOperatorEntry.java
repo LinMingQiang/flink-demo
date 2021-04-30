@@ -6,9 +6,9 @@ import com.core.FlinkEvnBuilder;
 import com.flink.common.deserialize.KafkaMessageDeserialize;
 import com.manager.KafkaSourceManager;
 import com.flink.common.kafka.KafkaManager;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
 
 import com.func.processfunc.StreamConnectCoProcessFunc;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -51,12 +51,12 @@ public class FlinkCoreOperatorEntry {
      * wordcount
      */
     public static void runWordCount() {
-        DataStreamSource<KafkaMessge> s1 =
+        DataStreamSource<KafkaMessgePoJo> s1 =
                 KafkaSourceManager.getKafkaDataStream(streamEnv, "test", "localhost:9092", "latest", new KafkaMessageDeserialize());
 
         s1
-                .flatMap((FlatMapFunction<KafkaMessge, String>) (value, out) -> {
-                    for (String s : value.msg().split(",", -1)) {
+                .flatMap((FlatMapFunction<KafkaMessgePoJo, String>) (value, out) -> {
+                    for (String s : value.msg.split(",", -1)) {
                         out.collect(s);
                     }
                 })
@@ -73,30 +73,30 @@ public class FlinkCoreOperatorEntry {
         // 10s过期
         OutputTag<String> rejectedWordsTag = new OutputTag<String>("rejected") {
         };
-        SingleOutputStreamOperator<KafkaMessge> a =
+        SingleOutputStreamOperator<KafkaMessgePoJo> a =
                 KafkaSourceManager.getKafkaDataStream(streamEnv,
                         "test",
                         "localhost:9092",
                         "latest", new KafkaMessageDeserialize())
                         .assignTimestampsAndWatermarks(
-                                WatermarkStrategy.<KafkaMessge>forBoundedOutOfOrderness(Duration.ofSeconds(10))
-                                        .withTimestampAssigner(((element, recordTimestamp) -> element.ts())))
+                                WatermarkStrategy.<KafkaMessgePoJo>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                                        .withTimestampAssigner(((element, recordTimestamp) -> element.ts)))
                         .setParallelism(2);
 
-        SingleOutputStreamOperator<KafkaMessge> b =
+        SingleOutputStreamOperator<KafkaMessgePoJo> b =
                 KafkaSourceManager.getKafkaDataStream(streamEnv,
                         "test2",
                         "localhost:9092",
                         "latest", new KafkaMessageDeserialize())
                         .assignTimestampsAndWatermarks(
-                                WatermarkStrategy.<KafkaMessge>forBoundedOutOfOrderness(Duration.ofSeconds(10))
-                                        .withTimestampAssigner(((element, recordTimestamp) -> element.ts())))
+                                WatermarkStrategy.<KafkaMessgePoJo>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                                        .withTimestampAssigner(((element, recordTimestamp) -> element.ts)))
                         .setParallelism(2);
 
         SingleOutputStreamOperator resultStream =
                 a
                         .connect(b)
-                        .keyBy(KafkaMessge::msg, KafkaMessge::msg)
+                        .keyBy(KafkaMessgePoJo::getMsg, KafkaMessgePoJo::getMsg)
                         .process(new StreamConnectCoProcessFunc(rejectedWordsTag))
                         .setParallelism(2);
 

@@ -2,6 +2,7 @@ package com.flink.test;
 
 import com.flink.common.kafka.KafkaManager.*;
 import com.flink.learn.test.common.FlinkJavaStreamTableTestBase;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.cep.CEP;
 import org.apache.flink.cep.PatternSelectFunction;
@@ -26,34 +27,34 @@ public class CEPDemoTest extends FlinkJavaStreamTableTestBase {
         //  {"ts":2,"msg":"middle"}
         //  {"ts":4,"msg":"end"}
         // {"ts":4,"msg":"noend"}
-        Pattern<KafkaMessge, KafkaMessge> req_imp =
-                Pattern.<KafkaMessge>begin("start")
-                        .where(new SimpleCondition<KafkaMessge>() {
+        Pattern<KafkaMessgePoJo, KafkaMessgePoJo> req_imp =
+                Pattern.<KafkaMessgePoJo>begin("start")
+                        .where(new SimpleCondition<KafkaMessgePoJo>() {
                             @Override
-                            public boolean filter(KafkaMessge KafkaMessge) throws Exception {
-                                return KafkaMessge.msg().equals("start");
+                            public boolean filter(KafkaMessgePoJo KafkaMessgePoJo) throws Exception {
+                                return KafkaMessgePoJo.msg.equals("start");
                             }
                         })
                         .next("middle") // 接着有imp
-                        .where(new SimpleCondition<KafkaMessge>() {
+                        .where(new SimpleCondition<KafkaMessgePoJo>() {
                             @Override
-                            public boolean filter(KafkaMessge KafkaMessge) throws Exception {
-                                return KafkaMessge.msg().equals("middle");
+                            public boolean filter(KafkaMessgePoJo KafkaMessgePoJo) throws Exception {
+                                return KafkaMessgePoJo.msg.equals("middle");
                             }
                         })
                         .within(Time.seconds(40)) // 取决于start后  40s内 (如果这个失效，后面都失效)
                         .followedByAny("end") // 接着有imp
-                        .where(new SimpleCondition<KafkaMessge>() {
+                        .where(new SimpleCondition<KafkaMessgePoJo>() {
                             @Override
-                            public boolean filter(KafkaMessge KafkaMessge) throws Exception {
-                                return KafkaMessge.msg().equals("end");
+                            public boolean filter(KafkaMessgePoJo KafkaMessgePoJo) throws Exception {
+                                return KafkaMessgePoJo.msg.equals("end");
                             }
                         })
                         .within(Time.seconds(10)) // 取决于 middle的时间 + 10s  内。触发后可以连续输入，但是如果middle失效了（40s），那这个也失效了
-                        .or(new SimpleCondition<KafkaMessge>() {
+                        .or(new SimpleCondition<KafkaMessgePoJo>() {
                             @Override
-                            public boolean filter(KafkaMessge KafkaMessge) throws Exception {
-                                return KafkaMessge.msg().equals("noend");
+                            public boolean filter(KafkaMessgePoJo KafkaMessgePoJo) throws Exception {
+                                return KafkaMessgePoJo.msg.equals("noend");
                             }
                         })
                         .within(Time.seconds(40));
@@ -61,11 +62,11 @@ public class CEPDemoTest extends FlinkJavaStreamTableTestBase {
         // 如果是用msg做keyby，因为规则里面都是用msg。keyby会导致数据分组不同分区，规则也就不符合了
         // 所以最好是用你报表的key做分区，
         CEP
-                .pattern(getKafkaDataStreamSource("", "", "").keyBy((KeySelector<KafkaMessge, String>) value -> value.topic()), req_imp)
+                .pattern(getKafkaDataStreamSource("", "", "").keyBy((KeySelector<KafkaMessgePoJo, String>) value -> value.topic), req_imp)
                 .inProcessingTime() // 每来一条就触发，eventtime的话就是更加watermark来触发
-                .select(new PatternSelectFunction<KafkaMessge, String>() {
+                .select(new PatternSelectFunction<KafkaMessgePoJo, String>() {
                     @Override
-                    public String select(Map<String, List<KafkaMessge>> map) throws Exception {
+                    public String select(Map<String, List<KafkaMessgePoJo>> map) throws Exception {
                         return map.toString();
                     }
                 })
@@ -79,19 +80,19 @@ public class CEPDemoTest extends FlinkJavaStreamTableTestBase {
     @Test
     public void testUntil() throws Exception {
         // {"ts":10,"msg":"1"} {"ts":10,"msg":"8"}
-        Pattern<KafkaMessge, KafkaMessge> pattern = Pattern.<KafkaMessge>begin("start").where(
-                new SimpleCondition<KafkaMessge>() {
+        Pattern<KafkaMessgePoJo, KafkaMessgePoJo> pattern = Pattern.<KafkaMessgePoJo>begin("start").where(
+                new SimpleCondition<KafkaMessgePoJo>() {
                     @Override
-                    public boolean filter(KafkaMessge event) {
-                        boolean r = event.msg().equals("1");
+                    public boolean filter(KafkaMessgePoJo event) {
+                        boolean r = event.msg.equals("1");
                         return r;
                     }
                 }
         ).next("middle").where(
-                new SimpleCondition<KafkaMessge>() {
+                new SimpleCondition<KafkaMessgePoJo>() {
                     @Override
-                    public boolean filter(KafkaMessge event) {
-                        boolean r = event.msg().equals("8");
+                    public boolean filter(KafkaMessgePoJo event) {
+                        boolean r = event.msg.equals("8");
                         return r;
                     }
                 }
@@ -99,9 +100,9 @@ public class CEPDemoTest extends FlinkJavaStreamTableTestBase {
 
         CEP.pattern(kafkaDataSource, pattern)
                 .inProcessingTime() // 每来一条就触发，eventtime的话就是更加watermark来触发
-                .select(new PatternSelectFunction<KafkaMessge, String>() {
+                .select(new PatternSelectFunction<KafkaMessgePoJo, String>() {
             @Override
-            public String select(Map<String, List<KafkaMessge>> p) throws Exception {
+            public String select(Map<String, List<KafkaMessgePoJo>> p) throws Exception {
                 return p.toString();
             }
         }).print();

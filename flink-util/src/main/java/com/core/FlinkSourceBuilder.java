@@ -3,8 +3,8 @@ package com.core;
 import com.flink.common.core.EnvironmentalKey;
 import com.flink.common.core.FlinkLearnPropertiesUtil;
 import com.flink.common.deserialize.*;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
 import com.flink.common.kafka.KafkaManager;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -73,11 +73,11 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
      * @param reset
      * @return
      */
-    public static KeyedStream<KafkaMessge, String> getKafkaKeyStream(
+    public static KeyedStream<KafkaMessgePoJo, String> getKafkaKeyStream(
             String topic,
             String broker,
             String reset) {
-        return getKafkaDataStreamSource(topic, broker, reset).keyBy(KafkaMessge::msg);
+        return getKafkaDataStreamSource(topic, broker, reset).keyBy(KafkaMessgePoJo::getMsg);
     }
     /**
      * 没有keyby
@@ -86,14 +86,14 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
      * @param reset
      * @return
      */
-    public static SingleOutputStreamOperator<KafkaMessge> getKafkaDataStreamSource(
+    public static SingleOutputStreamOperator<KafkaMessgePoJo> getKafkaDataStreamSource(
             String topic,
             String broker,
             String reset) {
         return streamEnv.addSource(getKafkaConsumer(topic, broker, reset))
                         .assignTimestampsAndWatermarks(
-                        WatermarkStrategy.<KafkaMessge>forBoundedOutOfOrderness(Duration.ofSeconds(10))
-                                .withTimestampAssigner(((element, recordTimestamp) -> element.ts()))
+                        WatermarkStrategy.<KafkaMessgePoJo>forBoundedOutOfOrderness(Duration.ofSeconds(10))
+                                .withTimestampAssigner(((element, recordTimestamp) -> element.ts))
                 );
     }
 
@@ -104,10 +104,10 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
      * @param reset
      * @return
      */
-    public static FlinkKafkaConsumer<KafkaMessge> getKafkaConsumer(String topic,
+    public static FlinkKafkaConsumer<KafkaMessgePoJo> getKafkaConsumer(String topic,
                                                                    String broker,
                                                                    String reset) {
-        FlinkKafkaConsumer<KafkaMessge> kafkasource = KafkaManager.getKafkaSource(
+        FlinkKafkaConsumer<KafkaMessgePoJo> kafkasource = KafkaManager.getKafkaSource(
                 topic,
                 broker,
                 new KafkaMessageDeserialize());
@@ -126,7 +126,7 @@ public class FlinkSourceBuilder extends FlinkStreamEnvAndSource {
      * @param fields
      * @return
      */
-    protected static Table getStreamTable(KeyedStream<KafkaMessge, String> source, Expression... fields) {
+    protected static Table getStreamTable(KeyedStream<KafkaMessgePoJo, String> source, Expression... fields) {
         return tableEnv.fromDataStream(source, fields);
     }
 

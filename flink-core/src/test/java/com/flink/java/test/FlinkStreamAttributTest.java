@@ -1,10 +1,10 @@
 package com.flink.java.test;
 
 import com.flink.common.kafka.KafkaManager;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
 
 import com.flink.learn.bean.ReportLogPojo;
 import com.flink.learn.test.common.FlinkJavaStreamTableTestBase;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.Types;
@@ -35,7 +35,7 @@ public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
         // v2 是曝光，v1是请求，v3是点击
         SingleOutputStreamOperator<ReportLogPojo> req =
                 getKafkaKeyStream("test", "localhost:9092", "latest")
-                        .process(new KeyedProcessFunction<String, KafkaMessge, ReportLogPojo>() {
+                        .process(new KeyedProcessFunction<String, KafkaMessgePoJo, ReportLogPojo>() {
                             ValueState<Boolean> has = null;
 
                             @Override
@@ -43,10 +43,10 @@ public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
                                 has = getRuntimeContext().getState(new ValueStateDescriptor<Boolean>("has", Types.BOOLEAN, false));
                             }
                             @Override
-                            public void processElement(KafkaMessge v1, Context context, Collector<ReportLogPojo> collector) throws Exception {
+                            public void processElement(KafkaMessgePoJo v1, Context context, Collector<ReportLogPojo> collector) throws Exception {
                                 if (!has.value()) {
                                     has.update(true);
-                                    collector.collect(new ReportLogPojo(v1.msg(), v1.msg(), v1.ts(), 0L, 0L, 1L, 0L, 0L));
+                                    collector.collect(new ReportLogPojo(v1.msg, v1.msg, v1.ts, 0L, 0L, 1L, 0L, 0L));
                                 }
                             }
                         });
@@ -54,7 +54,7 @@ public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
         SingleOutputStreamOperator<ReportLogPojo> imp = req.keyBy((KeySelector<ReportLogPojo, String>) value -> value.req_id)
                 .intervalJoin(
                         getKafkaKeyStream("test2", "localhost:9092", "latest")
-                                .process(new KeyedProcessFunction<String, KafkaMessge, ReportLogPojo>() {
+                                .process(new KeyedProcessFunction<String, KafkaMessgePoJo, ReportLogPojo>() {
                                     ValueState<Boolean> has = null;
 
                                     @Override
@@ -63,10 +63,10 @@ public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
                                     }
 
                                     @Override
-                                    public void processElement(KafkaMessge v1, Context context, Collector<ReportLogPojo> collector) throws Exception {
+                                    public void processElement(KafkaMessgePoJo v1, Context context, Collector<ReportLogPojo> collector) throws Exception {
                                         if (!has.value()) {
                                             has.update(true);
-                                            collector.collect(new ReportLogPojo(v1.msg(), v1.msg(), 0L, v1.ts(), 0L, 0L, 0L, 0L));
+                                            collector.collect(new ReportLogPojo(v1.msg, v1.msg, 0L, v1.ts, 0L, 0L, 0L, 0L));
                                         }
                                     }
                                 })
@@ -84,7 +84,7 @@ public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
         SingleOutputStreamOperator<ReportLogPojo> click = imp.keyBy((KeySelector<ReportLogPojo, String>) v -> v.req_id)
                 .intervalJoin(
                         getKafkaKeyStream("test3", "localhost:9092", "latest")
-                                .process(new KeyedProcessFunction<String, KafkaMessge, ReportLogPojo>() {
+                                .process(new KeyedProcessFunction<String, KafkaMessgePoJo, ReportLogPojo>() {
                                     ValueState<Boolean> has = null;
 
                                     @Override
@@ -93,10 +93,10 @@ public class FlinkStreamAttributTest extends FlinkJavaStreamTableTestBase {
                                     }
 
                                     @Override
-                                    public void processElement(KafkaMessge v1, Context context, Collector<ReportLogPojo> collector) throws Exception {
+                                    public void processElement(KafkaMessgePoJo v1, Context context, Collector<ReportLogPojo> collector) throws Exception {
                                         if (!has.value()) {
                                             has.update(true);
-                                            collector.collect(new ReportLogPojo(v1.msg(), v1.msg(), 0L, 0L, v1.ts(), 0L, 0L, 0L));
+                                            collector.collect(new ReportLogPojo(v1.msg, v1.msg, 0L, 0L, v1.ts, 0L, 0L, 0L));
                                         }
                                     }
                                 }).keyBy((KeySelector<ReportLogPojo, String>) value -> value.req_id))

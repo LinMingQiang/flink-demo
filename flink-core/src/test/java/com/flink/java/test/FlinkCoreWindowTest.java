@@ -2,9 +2,8 @@ package com.flink.java.test;
 
 import com.manager.KafkaSourceManager;
 import com.flink.common.kafka.KafkaManager;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
-
 import com.flink.learn.test.common.FlinkJavaStreamTableTestBase;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
@@ -33,7 +32,7 @@ public class FlinkCoreWindowTest extends FlinkJavaStreamTableTestBase {
         // {"rowtime":"2020-01-01 00:00:32","msg":"c"}
         // {"rowtime":"2020-01-01 00:01:40","msg":"c"}
         kafkaDataSource
-                .map((MapFunction<KafkaMessge, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg(), 1L))
+                .map((MapFunction<KafkaMessgePoJo, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg, 1L))
                 .returns(Types.TUPLE(Types.STRING, Types.LONG))
                 .keyBy((KeySelector<Tuple2<String, Long>, String>) o -> o.f0)
                 // 统计5s一个窗口，有个offset参数，用来调整时间起点，正常是00-05这样，可以调成 01-06
@@ -77,7 +76,7 @@ public class FlinkCoreWindowTest extends FlinkJavaStreamTableTestBase {
     @Test
     public void testWindowAll() throws Exception {
         kafkaDataSource
-                .map((MapFunction<KafkaMessge, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg(), 1L))
+                .map((MapFunction<KafkaMessgePoJo, Tuple2<String, Long>>) value -> new Tuple2<>(value.msg, 1L))
                 .returns(Types.TUPLE(Types.STRING, Types.LONG))
                 .windowAll(TumblingEventTimeWindows.of(Time.seconds(10)))
                 .process(new ProcessAllWindowFunction<Tuple2<String, Long>, String, TimeWindow>() {

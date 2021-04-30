@@ -2,7 +2,7 @@ package com.func.richfunc;
 
 import com.flink.common.core.FlinkLearnPropertiesUtil;
 import com.flink.common.dbutil.FlinkHbaseFactory;
-import com.flink.common.kafka.KafkaManager.KafkaMessge;
+import com.pojo.KafkaMessgePoJo;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
@@ -14,8 +14,8 @@ import java.util.Collections;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
 
-public class AsyncIODatabaseRequest extends RichAsyncFunction<KafkaMessge,
-        Tuple2<KafkaMessge, KafkaMessge>> {
+public class AsyncIODatabaseRequest extends RichAsyncFunction<KafkaMessgePoJo,
+        Tuple2<KafkaMessgePoJo, KafkaMessgePoJo>> {
     Connection conn = null;
 
     @Override
@@ -28,14 +28,14 @@ public class AsyncIODatabaseRequest extends RichAsyncFunction<KafkaMessge,
     }
 
     @Override
-    public void asyncInvoke(KafkaMessge input,
-                            ResultFuture<Tuple2<KafkaMessge, KafkaMessge>> resultFuture) throws Exception {
-        final Future<KafkaMessge> result = queryClient(input);
+    public void asyncInvoke(KafkaMessgePoJo input,
+                            ResultFuture<Tuple2<KafkaMessgePoJo, KafkaMessgePoJo>> resultFuture) throws Exception {
+        final Future<KafkaMessgePoJo> result = queryClient(input);
         // 设置客户端完成请求后要执行的回调函数
         // 回调函数只是简单地把结果发给 future
-        CompletableFuture.supplyAsync(new Supplier<KafkaMessge>() {
+        CompletableFuture.supplyAsync(new Supplier<KafkaMessgePoJo>() {
             @Override
-            public KafkaMessge get() {
+            public KafkaMessgePoJo get() {
                 try {
                     return result.get();
                 } catch (InterruptedException | ExecutionException e) {
@@ -43,7 +43,7 @@ public class AsyncIODatabaseRequest extends RichAsyncFunction<KafkaMessge,
                     return null;
                 }
             }
-        }).thenAccept((KafkaMessge dbResult) -> {
+        }).thenAccept((KafkaMessgePoJo dbResult) -> {
             resultFuture.complete(Collections.singleton(new Tuple2<>(input, dbResult)));
         });
     }
@@ -56,20 +56,20 @@ public class AsyncIODatabaseRequest extends RichAsyncFunction<KafkaMessge,
      * @throws Exception
      */
     @Override
-    public void timeout(KafkaMessge input,
-                        ResultFuture<Tuple2<KafkaMessge, KafkaMessge>> resultFuture) throws Exception {
+    public void timeout(KafkaMessgePoJo input,
+                        ResultFuture<Tuple2<KafkaMessgePoJo, KafkaMessgePoJo>> resultFuture) throws Exception {
         resultFuture.complete(Collections.singleton(new Tuple2<>(input,
-                new KafkaMessge(
-                        input.topic(),
-                        input.offset(),
+                new KafkaMessgePoJo(
+                        input.topic,
+                        input.offset,
                         0L,
                         "timeout",
                         null,
                         null))));
     }
 
-    public Future<KafkaMessge> queryClient(KafkaMessge input) {
-        return new Future<KafkaMessge>() {
+    public Future<KafkaMessgePoJo> queryClient(KafkaMessgePoJo input) {
+        return new Future<KafkaMessgePoJo>() {
             @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
                 return false;
@@ -86,13 +86,13 @@ public class AsyncIODatabaseRequest extends RichAsyncFunction<KafkaMessge,
             }
 
             @Override
-            public KafkaMessge get() {
-                if (input.msg().equals("1")) {
+            public KafkaMessgePoJo get() {
+                if (input.msg.equals("1")) {
                     // FlinkHbaseFactory.get(conn, "test", input.msg());
 
-                    return new KafkaMessge(
-                            input.topic(),
-                            input.offset(),
+                    return new KafkaMessgePoJo(
+                            input.topic,
+                            input.offset,
                             0L,
                             "hello",
                             null,
@@ -103,7 +103,7 @@ public class AsyncIODatabaseRequest extends RichAsyncFunction<KafkaMessge,
             }
 
             @Override
-            public KafkaMessge get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            public KafkaMessgePoJo get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
                 return get();
             }
         };
